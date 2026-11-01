@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KAS ALA GEN Z - Manajemen Keuangan Brutal</title>
+    
+    <!-- React & ReactDOM (Development versions for easier debugging if needed) -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    
+    <!-- Babel for in-browser JSX compilation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS (Play CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Darker+Grotesque:wght@500;700;900&family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
+
+    <!-- Custom CSS (Brutalism Style) -->
+    <style>
+        :root {
+            --c-primary: #DD614C;
+            --c-secondary: #DAA144;
+            --c-success: #16A34A;
+            --c-warning: #D97706;
+            --c-danger: #DC2626;
+            --c-surface: #FFFFFF;
+            --c-text: #111827;
+            --c-bg: #E5E5E5;
+        }
+
+        body {
+            background-color: var(--c-bg);
+            color: var(--c-text);
+            font-family: 'JetBrains Mono', monospace;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1, h2, h3, h4, h5, h6, .font-heading {
+            font-family: 'Darker Grotesque', sans-serif;
+            font-weight: 900;
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+        }
+
+        .brutal-border { border: 3px solid var(--c-text); }
+        .brutal-shadow { box-shadow: 4px 4px 0px var(--c-text); }
+        .brutal-shadow-sm { box-shadow: 2px 2px 0px var(--c-text); }
+        
+        .brutal-btn { transition: all 0.1s ease; }
+        .brutal-btn:active {
+            transform: translate(4px, 4px);
+            box-shadow: 0px 0px 0px var(--c-text);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 12px; height: 12px; }
+        ::-webkit-scrollbar-track { background: var(--c-surface); border-left: 3px solid var(--c-text); }
+        ::-webkit-scrollbar-thumb { background: var(--c-text); }
+        
+        /* Utility classes that Tailwind might not catch dynamically */
+        .animate-fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <!-- React Application Code -->
+    <script type="text/babel" data-type="module">
+        const { useState, useMemo, useEffect } = React;
+
+        // --- Dummy Data ---
+        const INITIAL_WALLETS = [
+          { id: 'w1', name: 'Uang Tunai', startingBalance: 250000 },
+          { id: 'w2', name: 'Rekening BCA', startingBalance: 5000000 },
+          { id: 'w3', name: 'GoPay', startingBalance: 150000 }
+        ];
+
+        const INITIAL_TRANSACTIONS = [
+          { id: 't1', type: 'pemasukan', amount: 6000000, category: 'Gaji', walletId: 'w2', date: new Date().toISOString().split('T')[0], desc: 'Gaji Bulanan' },
+          { id: 't2', type: 'pengeluaran', amount: 50000, category: 'Makanan', walletId: 'w1', date: new Date().toISOString().split('T')[0], desc: 'Makan Siang Warteg' },
+          { id: 't3', type: 'pengeluaran', amount: 1200000, category: 'Tagihan', walletId: 'w2', date: new Date().toISOString().split('T')[0], desc: 'Bayar Listrik & Air' },
+          { id: 't4', type: 'pengeluaran', amount: 200000, category: 'Transport', walletId: 'w3', date: new Date().toISOString().split('T')[0], desc: 'Isi Saldo GoRide' }
+        ];
+
+        const INITIAL_BUDGETS = [
+          { id: 'b1', category: 'Makanan', limit: 1500000 },
+          { id: 'b2', category: 'Tagihan', limit: 2000000 },
+          { id: 'b3', category: 'Transport', limit: 500000 }
+        ];
+
+        const INITIAL_SAVINGS = [
+          { id: 's1', name: 'Dana Darurat', target: 20000000, currentAmount: 5000000 },
+          { id: 's2', name: 'Liburan ke Jepang', target: 15000000, currentAmount: 2500000 }
+        ];
+
+        // --- Helper Functions ---
+        const formatRupiah = (number) => {
+          return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
+        };
+        const generateId = () => Math.random().toString(36).substr(2, 9);
+
+        // --- Reusable UI Components ---
+        const BrutalInput = ({ label, ...props }) => (
+          <div className="flex flex-col mb-4">
+            <label className="font-bold mb-1 uppercase text-sm tracking-wider">{label}</label>
+            <input 
+              className="brutal-border brutal-shadow-sm px-3 py-2 bg-white focus:outline-none focus:bg-[#FFF8E7] transition-colors font-mono font-bold text-lg w-full"
+              {...props}
+            />
+          </div>
+        );
+
+        const BrutalSelect = ({ label, options, ...props }) => (
+          <div className="flex flex-col mb-4">
+            <label className="font-bold mb-1 uppercase text-sm tracking-wider">{label}</label>
+            <select 
+              className="brutal-border brutal-shadow-sm px-3 py-2 bg-white focus:outline-none focus:bg-[#FFF8E7] transition-colors font-mono font-bold text-lg w-full appearance-none cursor-pointer"
+              {...props}
+            >
+              <option value="" disabled>PILIH...</option>
+              {options.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+            </select>
+          </div>
+        );
+
+        const BrutalButton = ({ children, variant = 'primary', className = '', ...props }) => {
+          const variants = {
+            primary: 'bg-[var(--c-primary)] text-white',
+            secondary: 'bg-[var(--c-secondary)] text-black',
+            success: 'bg-[var(--c-success)] text-white',
+            danger: 'bg-[var(--c-danger)] text-white',
+            surface: 'bg-[var(--c-surface)] text-black',
+          };
+          return (
+            <button 
+              className={`brutal-border brutal-shadow brutal-btn font-heading text-xl uppercase px-6 py-2 flex items-center justify-center gap-2 cursor-pointer ${variants[variant]} ${className}`}
+              {...props}
+            >
+              {children}
+            </button>
+          );
+        };
+
+        const BrutalCard = ({ title, children, className = '', headerAction }) => (
+          <div className={`brutal-border brutal-shadow bg-[var(--c-surface)] flex flex-col ${className}`}>
+            {(title || headerAction) && (
+              <div className="border-b-[3px] border-black p-4 flex justify-between items-center bg-[#F9F9F9]">
+                {title && <h2 className="font-heading text-3xl m-0 uppercase leading-none">{title}</h2>}
+                {headerAction}
+              </div>
+            )}
+            <div className="p-4 flex-grow flex flex-col">
+              {children}
+            </div>
+          </div>
+        );
+
+        const ProgressBar = ({ current, max, colorClass = 'bg-[var(--c-primary)]' }) => {
+          const percentage = Math.min(100, Math.max(0, (current / max) * 100)) || 0;
+          return (
+            <div className="w-full brutal-border h-8 bg-white relative overflow-hidden flex items-center">
+              <div className={`h-full ${colorClass} border-r-[3px] border-black transition-all duration-500`} style={{ width: `${percentage}%` }} />
+              <div className="absolute inset-0 flex items-center justify-center font-mono font-bold text-sm z-10 pointer-events-none" style={{ mixBlendMode: 'difference', color: 'white' }}>
+                {percentage.toFixed(1)}%
+              </div>
+            </div>
+          );
+        };
+
+        const Modal = ({ isOpen, onClose, title, children }) => {
+          if (!isOpen) return null;
+          return (
+            <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+              <div className="brutal-border brutal-shadow bg-white w-full max-w-md max-h-[90vh] overflow-y-auto">
+                <div className="border-b-[3px] border-black p-4 flex justify-between items-center bg-[var(--c-secondary)]">
+                  <h2 className="font-heading text-2xl uppercase m-0">{title}</h2>
+                  <button onClick={onClose} className="font-mono font-bold text-2xl hover:text-red-600">&times;</button>
+                </div>
+                <div className="p-4">
+                  {children}
+                </div>
+              </div>
+            </div>
+          );
+        };
+
+        // --- SVG Icons ---
+        const Icons = {
+          Wallet: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path d="M21 12V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h14a2 2 0 002-2v-5m-9 0h9m-9 0a2 2 0 000-4h9m-9 4a2 2 0 010-4" /></svg>,
+          List: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>,
+          Chart: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" /><path d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" /></svg>,
+          Target: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>,
+          Dashboard: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>,
+          Calendar: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>,
+          Plus: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3"><path d="M12 4v16m8-8H4" /></svg>,
+          Edit: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>,
+          Trash: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+        };
+
+        // --- Main Application Component ---
+        function App() {
+          const [userName, setUserName] = useState('');
+          const [isLoggedIn, setIsLoggedIn] = useState(false);
+          const [currentView, setCurrentView] = useState('dashboard');
+
+          // State
+          const [wallets, setWallets] = useState(INITIAL_WALLETS);
+          const [transactions, setTransactions] = useState(INITIAL_TRANSACTIONS);
+          const [budgets, setBudgets] = useState(INITIAL_BUDGETS);
+          const [savings, setSavings] = useState(INITIAL_SAVINGS);
+
+          // Derived Calculations
+          const calculatedWallets = useMemo(() => {
+            return wallets.map(wallet => {
+              const walletTxs = transactions.filter(t => t.walletId === wallet.id);
+              const income = walletTxs.filter(t => t.type === 'pemasukan').reduce((sum, t) => sum + Number(t.amount), 0);
+              const expense = walletTxs.filter(t => t.type === 'pengeluaran').reduce((sum, t) => sum + Number(t.amount), 0);
+              return {
+                ...wallet,
+                currentBalance: wallet.startingBalance + income - expense
+              };
+            });
+          }, [wallets, transactions]);
+
+          const totalBalance = useMemo(() => calculatedWallets.reduce((sum, w) => sum + w.currentBalance, 0), [calculatedWallets]);
+          const totalIncome = useMemo(() => transactions.filter(t => t.type === 'pemasukan').reduce((sum, t) => sum + Number(t.amount), 0), [transactions]);
+          const totalExpense = useMemo(() => transactions.filter(t => t.type === 'pengeluaran').reduce((sum, t) => sum + Number(t.amount), 0), [transactions]);
+
+          // View Handlers
+          const views = [
+            { id: 'dashboard', label: 'Dashboard', icon: Icons.Dashboard },
+            { id: 'dompet', label: 'Dompet', icon: Icons.Wallet },
+            { id: 'transaksi', label: 'Transaksi', icon: Icons.List },
+            { id: 'budgeting', label: 'Budgeting', icon: Icons.Chart },
+            { id: 'tabungan', label: 'Target Tabungan', icon: Icons.Target },
+            { id: 'tracking', label: 'Tracking', icon: Icons.Calendar }
+          ];
+
+          if (!isLoggedIn) {
+            return (
+              <div className="min-h-screen flex flex-col items-center justify-center p-4">
+                <div className="max-w-md w-full">
+                  <BrutalCard className="text-center">
+                    <h1 className="text-6xl mb-2 text-[var(--c-primary)]">KAS ALA<br/>GEN Z</h1>
+                    <p className="font-mono font-bold mb-8 text-xl">MANAJEMEN KEUANGAN BRUTAL</p>
+                    
+                    <form onSubmit={(e) => { e.preventDefault(); if (userName.trim()) setIsLoggedIn(true); }}>
+                      <BrutalInput 
+                        label="SIAPA NAMA ANDA?" 
+                        placeholder="NAMA PANGGILAN..." 
+                        value={userName} 
+                        onChange={(e) => setUserName(e.target.value)}
+                        autoFocus
+                      />
+                      <BrutalButton type="submit" className="w-full mt-4 h-16 text-2xl">
+                        MASUK <span className="text-3xl">&rarr;</span>
+                      </BrutalButton>
+                    </form>
+                  </BrutalCard>
+                </div>
+              </div>
+            );
+          }
+
+          const renderDashboard = () => (
+            <div className="space-y-6 animate-fade-in">
+              <div className="brutal-border brutal-shadow bg-[var(--c-secondary)] p-6">
+                <h1 className="text-5xl md:text-6xl m-0 leading-none">HALO, {userName.toUpperCase()}!</h1>
+                <p className="font-mono font-bold text-xl mt-2">BERIKUT RINGKASAN KEUANGANMU SAAT INI.</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <BrutalCard title="TOTAL UANG" className="bg-[var(--c-surface)]">
+                  <div className="text-4xl font-mono font-bold break-all">{formatRupiah(totalBalance)}</div>
+                </BrutalCard>
+                <BrutalCard title="PEMASUKAN" className="bg-[#E6F4EA] border-[var(--c-success)] text-[var(--c-success)]">
+                  <div className="text-4xl font-mono font-bold break-all">+{formatRupiah(totalIncome)}</div>
+                </BrutalCard>
+                <BrutalCard title="PENGELUARAN" className="bg-[#FEE2E2] border-[var(--c-danger)] text-[var(--c-danger)]">
+                  <div className="text-4xl font-mono font-bold break-all">-{formatRupiah(totalExpense)}</div>
+                </BrutalCard>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <BrutalCard title="DOMPET AKTIF">
+                  {calculatedWallets.length === 0 ? <p className="font-mono font-bold">TIDAK ADA DOMPET.</p> : (
+                    <ul className="space-y-3 font-mono font-bold text-lg">
+                      {calculatedWallets.map(w => (
+                        <li key={w.id} className="flex justify-between border-b-2 border-black pb-1">
+                          <span>{w.name.toUpperCase()}</span>
+                          <span>{formatRupiah(w.currentBalance)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </BrutalCard>
+                <BrutalCard title="TRANSAKSI TERAKHIR">
+                  {transactions.length === 0 ? <p className="font-mono font-bold">TIDAK ADA TRANSAKSI.</p> : (
+                    <ul className="space-y-3 font-mono font-bold">
+                      {transactions.slice(0, 5).map(t => {
+                        const isIncome = t.type === 'pemasukan';
+                        return (
+                          <li key={t.id} className="flex justify-between border-b-2 border-black pb-1">
+                            <div className="flex flex-col">
+                              <span className="uppercase">{t.desc || t.category}</span>
+                              <span className="text-xs">{t.date}</span>
+                            </div>
+                            <span className={isIncome ? 'text-[var(--c-success)]' : 'text-[var(--c-danger)]'}>
+                              {isIncome ? '+' : '-'}{formatRupiah(t.amount)}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </BrutalCard>
+              </div>
+            </div>
+          );
+
+          const WalletsView = () => {
+            const [isModalOpen, setIsModalOpen] = useState(false);
+            const [editingId, setEditingId] = useState(null);
+            const [formData, setFormData] = useState({ name: '', balance: '' });
+
+            const openModal = (wallet = null) => {
+              if (wallet) {
+                setEditingId(wallet.id);
+                setFormData({ name: wallet.name, balance: wallet.currentBalance.toString() });
+              } else {
+                setEditingId(null);
+                setFormData({ name: '', balance: '0' });
+              }
+              setIsModalOpen(true);
+            };
+
+            const handleSave = (e) => {
+              e.preventDefault();
+              const targetBalance = Number(formData.balance) || 0;
+              
+              if (editingId) {
+                setWallets(prev => prev.map(w => {
+                  if (w.id === editingId) {
+                    const walletTxs = transactions.filter(t => t.walletId === editingId);
+                    const income = walletTxs.filter(t => t.type === 'pemasukan').reduce((sum, t) => sum + Number(t.amount), 0);
+                    const expense = walletTxs.filter(t => t.type === 'pengeluaran').reduce((sum, t) => sum + Number(t.amount), 0);
+                    const newStartingBalance = targetBalance - income + expense;
+                    
+                    return { ...w, name: formData.name, startingBalance: newStartingBalance };
+                  }
+                  return w;
+                }));
+              } else {
+                setWallets(prev => [...prev, { id: generateId(), name: formData.name, startingBalance: targetBalance }]);
+              }
+              setIsModalOpen(false);
+            };
+
+            const handleDelete = (id) => {
+              if (transactions.some(t => t.walletId === id)) {
+                alert("Gagal: Hapus dulu semua transaksi yang menggunakan dompet ini!");
+                return;
+              }
+              setWallets(prev => prev.filter(w => w.id !== id));
+            };
+
+            return (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center bg-[var(--c-surface)] brutal-border brutal-shadow p-4">
+                  <h1 className="text-4xl m-0 uppercase">Kelola Dompet</h1>
+                  <BrutalButton onClick={() => openModal()}><Icons.Plus /> TAMBAH</BrutalButton>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {calculatedWallets.map(w => (
+                    <BrutalCard key={w.id} className="relative group">
+                      <div className="absolute top-4 right-4 flex gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => openModal(w)} className="bg-[var(--c-secondary)] brutal-border p-2 brutal-btn"><Icons.Edit /></button>
+                        <button onClick={() => handleDelete(w.id)} className="bg-[var(--c-danger)] text-white brutal-border p-2 brutal-btn"><Icons.Trash /></button>
+                      </div>
+                      <h3 className="text-3xl uppercase mb-4 pr-20 break-words">{w.name}</h3>
+                      <p className="font-mono text-sm font-bold text-gray-600 mb-1 uppercase">Saldo Saat Ini</p>
+                      <p className="font-mono text-3xl font-bold break-all">{formatRupiah(w.currentBalance)}</p>
+                    </BrutalCard>
+                  ))}
+                </div>
+
+                <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingId ? 'Edit Dompet' : 'Tambah Dompet'}>
+                  <form onSubmit={handleSave}>
+                    <BrutalInput label="Nama Dompet" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
+                    <BrutalInput label="Saldo Aktual (Rp)" type="number" required value={formData.balance} onChange={e => setFormData({ ...formData, balance: e.target.value })} />
+                    <BrutalButton type="submit" className="w-full mt-4">SIMPAN</BrutalButton>
+                  </form>
+                </Modal>
+              </div>
+            );
+          };
+
+          const TransactionsView = () => {
+            const [isModalOpen, setIsModalOpen] = useState(false);
+            const [editingId, setEditingId] = useState(null);
+            const [formData, setFormData] = useState({ type: 'pengeluaran', amount: '', category: '', walletId: '', date: new Date().toISOString().split('T')[0], desc: '' });
+
+            const openModal = (tx = null) => {
+              if (tx) {
+                setEditingId(tx.id);
+                setFormData(tx);
+              } else {
+                setEditingId(null);
+                setFormData({ type: 'pengeluaran', amount: '', category: '', walletId: calculatedWallets[0]?.id || '', date: new Date().toISOString().split('T')[0], desc: '' });
+              }
+              setIsModalOpen(true);
+            };
+
+            const handleSave = (e) => {
+              e.preventDefault();
+              if (editingId) {
+                setTransactions(prev => prev.map(t => t.id === editingId ? { ...formData, id: editingId, amount: Number(formData.amount) } : t));
+              } else {
+                setTransactions(prev => [{ ...formData, id: generateId(), amount: Number(formData.amount) }, ...prev]);
+              }
+              setIsModalOpen(false);
+            };
+
+            const handleDelete = (id) => setTransactions(prev => prev.filter(t => t.id !== id));
+
+            return (
+              <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-[var(--c-surface)] brutal-border brutal-shadow p-4 gap-4">
+                  <h1 className="text-4xl m-0 uppercase">Daftar Transaksi</h1>
+                  <BrutalButton onClick={() => openModal()} disabled={calculatedWallets.length === 0} title={calculatedWallets.length === 0 ? "Tambah dompet dulu!" : ""}>
+                    <Icons.Plus /> CATAT TRANSAKSI
+                  </BrutalButton>
+                </div>
+
+                <BrutalCard className="p-0 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left font-mono font-bold whitespace-nowrap">
+                      <thead className="bg-[var(--c-text)] text-white">
+                        <tr>
+                          <th className="p-4 border-r-2 border-white">TANGGAL</th>
+                          <th className="p-4 border-r-2 border-white">DESKRIPSI</th>
+                          <th className="p-4 border-r-2 border-white">KATEGORI</th>
+                          <th className="p-4 border-r-2 border-white">DOMPET</th>
+                          <th className="p-4 border-r-2 border-white text-right">NOMINAL</th>
+                          <th className="p-4 text-center">AKSI</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {transactions.length === 0 && <tr><td colSpan="6" className="p-4 text-center">BELUM ADA TRANSAKSI</td></tr>}
+                        {transactions.sort((a,b) => new Date(b.date) - new Date(a.date)).map(t => (
+                          <tr key={t.id} className="border-b-2 border-black hover:bg-[#F0F0F0]">
+                            <td className="p-4 border-r-2 border-black">{t.date}</td>
+                            <td className="p-4 border-r-2 border-black">{t.desc}</td>
+                            <td className="p-4 border-r-2 border-black uppercase">{t.category}</td>
+                            <td className="p-4 border-r-2 border-black uppercase">{calculatedWallets.find(w => w.id === t.walletId)?.name || 'N/A'}</td>
+                            <td className={`p-4 border-r-2 border-black text-right ${t.type === 'pemasukan' ? 'text-[var(--c-success)]' : 'text-[var(--c-danger)]'}`}>
+                              {t.type === 'pemasukan' ? '+' : '-'}{formatRupiah(t.amount)}
+                            </td>
+                            <td className="p-4 flex justify-center gap-2">
+                              <button onClick={() => openModal(t)} className="bg-[var(--c-secondary)] brutal-border p-1 brutal-btn"><Icons.Edit /></button>
+                              <button onClick={() => handleDelete(t.id)} className="bg-[var(--c-danger)] text-white brutal-border p-1 brutal-btn"><Icons.Trash /></button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </BrutalCard>
+
+                <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingId ? 'Edit Transaksi' : 'Catat Transaksi'}>
+                  <form onSubmit={handleSave}>
+                    <div className="flex gap-4 mb-4">
+                      <label className="flex-1 brutal-border p-3 flex items-center justify-center gap-2 cursor-pointer transition-colors" style={{ backgroundColor: formData.type === 'pengeluaran' ? 'var(--c-danger)' : 'white', color: formData.type === 'pengeluaran' ? 'white' : 'black' }}>
+                        <input type="radio" name="type" className="hidden" checked={formData.type === 'pengeluaran'} onChange={() => setFormData({...formData, type: 'pengeluaran'})} />
+                        <span className="font-heading font-bold text-xl uppercase">Pengeluaran</span>
+                      </label>
+                      <label className="flex-1 brutal-border p-3 flex items-center justify-center gap-2 cursor-pointer transition-colors" style={{ backgroundColor: formData.type === 'pemasukan' ? 'var(--c-success)' : 'white', color: formData.type === 'pemasukan' ? 'white' : 'black' }}>
+                        <input type="radio" name="type" className="hidden" checked={formData.type === 'pemasukan'} onChange={() => setFormData({...formData, type: 'pemasukan'})} />
+                        <span className="font-heading font-bold text-xl uppercase">Pemasukan</span>
+                      </label>
+                    </div>
+                    <BrutalInput label="Nominal (Rp)" type="number" required value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} />
+                    <BrutalInput label="Kategori" required value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} placeholder="Cth: Makanan, Gaji, dll" />
+                    <BrutalInput label="Deskripsi (Opsional)" value={formData.desc} onChange={e => setFormData({ ...formData, desc: e.target.value })} />
+                    <BrutalSelect label="Gunakan Dompet" required value={formData.walletId} onChange={e => setFormData({ ...formData, walletId: e.target.value })} options={calculatedWallets.map(w => ({ value: w.id, label: `${w.name} (${formatRupiah(w.currentBalance)})` }))} />
+                    <BrutalInput label="Tanggal" type="date" required value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} />
+                    <BrutalButton type="submit" className="w-full mt-4" variant={formData.type === 'pemasukan' ? 'success' : 'danger'}>SIMPAN</BrutalButton>
+                  </form>
+                </Modal>
+              </div>
+            );
+          };
+
+          const BudgetingView = () => {
+            const [isModalOpen, setIsModalOpen] = useState(false);
+            const [editingId, setEditingId] = useState(null);
+            const [formData, setFormData] = useState({ category: '', limit: '' });
+
+            const expensesByCategory = useMemo(() => {
+              const expenses = transactions.filter(t => t.type === 'pengeluaran');
+              return expenses.reduce((acc, t) => {
+                const cat = t.category.toLowerCase();
+                acc[cat] = (acc[cat] || 0) + Number(t.amount);
+                return acc;
+              }, {});
+            }, [transactions]);
+
+            const openModal = (budget = null) => {
+              if (budget) {
+                setEditingId(budget.id);
+                setFormData({ category: budget.category, limit: budget.limit.toString() });
+              } else {
+                setEditingId(null);
+                setFormData({ category: '', limit: '' });
+              }
+              setIsModalOpen(true);
+            };
+
+            const handleSave = (e) => {
+              e.preventDefault();
+              if (editingId) {
+                setBudgets(prev => prev.map(b => b.id === editingId ? { ...b, category: formData.category, limit: Number(formData.limit) } : b));
+              } else {
+                setBudgets(prev => [...prev, { id: generateId(), category: formData.category, limit: Number(formData.limit) }]);
+              }
+              setIsModalOpen(false);
+            };
+
+            const handleDelete = (id) => setBudgets(prev => prev.filter(b => b.id !== id));
+
+            return (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center bg-[var(--c-surface)] brutal-border brutal-shadow p-4">
+                  <h1 className="text-4xl m-0 uppercase">Budget Bulanan</h1>
+                  <BrutalButton onClick={() => openModal()}><Icons.Plus /> BUAT BUDGET</BrutalButton>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {budgets.length === 0 && <div className="col-span-full font-mono font-bold text-center p-8">BELUM ADA BUDGET DIBUAT.</div>}
+                  {budgets.map(b => {
+                    const spent = expensesByCategory[b.category.toLowerCase()] || 0;
+                    const isOver = spent > b.limit;
+                    return (
+                      <BrutalCard key={b.id} className="relative group">
+                        <div className="absolute top-4 right-4 flex gap-2">
+                          <button onClick={() => openModal(b)} className="bg-[var(--c-secondary)] brutal-border p-2 brutal-btn"><Icons.Edit /></button>
+                          <button onClick={() => handleDelete(b.id)} className="bg-[var(--c-danger)] text-white brutal-border p-2 brutal-btn"><Icons.Trash /></button>
+                        </div>
+                        <h3 className="text-3xl uppercase mb-6 pr-20">{b.category}</h3>
+                        
+                        <div className="mb-2 flex justify-between font-mono font-bold uppercase text-sm">
+                          <span>Terpakai: {formatRupiah(spent)}</span>
+                          <span>Batas: {formatRupiah(b.limit)}</span>
+                        </div>
+                        
+                        <ProgressBar current={spent} max={b.limit} colorClass={isOver ? 'bg-[var(--c-danger)]' : 'bg-[var(--c-primary)]'} />
+                        
+                        {isOver && <div className="mt-2 text-[var(--c-danger)] font-bold font-mono text-sm bg-[#FEE2E2] brutal-border p-1 text-center uppercase">MELEBIHI BUDGET!</div>}
+                      </BrutalCard>
+                    );
+                  })}
+                </div>
+
+                <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingId ? 'Edit Budget' : 'Buat Budget'}>
+                  <form onSubmit={handleSave}>
+                    <BrutalInput label="Nama Kategori" required value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} placeholder="Cth: Makanan, Transport" />
+                    <BrutalInput label="Batas Maksimal (Rp)" type="number" required value={formData.limit} onChange={e => setFormData({ ...formData, limit: e.target.value })} />
+                    <BrutalButton type="submit" className="w-full mt-4">SIMPAN</BrutalButton>
+                  </form>
+                </Modal>
+              </div>
+            );
+          };
+
+          const SavingsView = () => {
+            const [isModalOpen, setIsModalOpen] = useState(false);
+            const [editingId, setEditingId] = useState(null);
+            const [formData, setFormData] = useState({ name: '', target: '', currentAmount: '' });
+
+            const openModal = (saving = null) => {
+              if (saving) {
+                setEditingId(saving.id);
+                setFormData({ name: saving.name, target: saving.target.toString(), currentAmount: saving.currentAmount.toString() });
+              } else {
+                setEditingId(null);
+                setFormData({ name: '', target: '', currentAmount: '0' });
+              }
+              setIsModalOpen(true);
+            };
+
+            const handleSave = (e) => {
+              e.preventDefault();
+              if (editingId) {
+                setSavings(prev => prev.map(s => s.id === editingId ? { ...s, name: formData.name, target: Number(formData.target), currentAmount: Number(formData.currentAmount) } : s));
+              } else {
+                setSavings(prev => [...prev, { id: generateId(), name: formData.name, target: Number(formData.target), currentAmount: Number(formData.currentAmount) }]);
+              }
+              setIsModalOpen(false);
+            };
+
+            const handleDelete = (id) => setSavings(prev => prev.filter(s => s.id !== id));
+
+            return (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center bg-[var(--c-surface)] brutal-border brutal-shadow p-4">
+                  <h1 className="text-4xl m-0 uppercase">Target Tabungan</h1>
+                  <BrutalButton onClick={() => openModal()}><Icons.Plus /> TARGET BARU</BrutalButton>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {savings.length === 0 && <div className="col-span-full font-mono font-bold text-center p-8">BELUM ADA TARGET TABUNGAN.</div>}
+                  {savings.map(s => {
+                    const isDone = s.currentAmount >= s.target;
+                    return (
+                      <BrutalCard key={s.id} className={`relative group ${isDone ? 'bg-[#E6F4EA]' : ''}`}>
+                        <div className="absolute top-4 right-4 flex gap-2">
+                          <button onClick={() => openModal(s)} className="bg-[var(--c-secondary)] brutal-border p-2 brutal-btn"><Icons.Edit /></button>
+                          <button onClick={() => handleDelete(s.id)} className="bg-[var(--c-danger)] text-white brutal-border p-2 brutal-btn"><Icons.Trash /></button>
+                        </div>
+                        <h3 className="text-3xl uppercase mb-6 pr-20">{s.name}</h3>
+                        
+                        <div className="mb-2 flex flex-col font-mono font-bold uppercase text-sm">
+                          <span>Terkumpul: <span className="text-xl">{formatRupiah(s.currentAmount)}</span></span>
+                          <span className="text-gray-600">Target: {formatRupiah(s.target)}</span>
+                        </div>
+                        
+                        <ProgressBar current={s.currentAmount} max={s.target} colorClass={isDone ? 'bg-[var(--c-success)]' : 'bg-[var(--c-secondary)]'} />
+                        
+                        {isDone && <div className="mt-4 text-[var(--c-success)] font-bold font-mono text-xl text-center uppercase border-t-2 border-black pt-2">TARGET TERCAPAI! 🎉</div>}
+                      </BrutalCard>
+                    );
+                  })}
+                </div>
+
+                <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingId ? 'Edit Target' : 'Buat Target'}>
+                  <form onSubmit={handleSave}>
+                    <BrutalInput label="Nama Target" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="Cth: Beli Motor" />
+                    <BrutalInput label="Jumlah Target (Rp)" type="number" required value={formData.target} onChange={e => setFormData({ ...formData, target: e.target.value })} />
+                    <BrutalInput label="Uang Terkumpul Saat Ini (Rp)" type="number" required value={formData.currentAmount} onChange={e => setFormData({ ...formData, currentAmount: e.target.value })} />
+                    <BrutalButton type="submit" className="w-full mt-4">SIMPAN</BrutalButton>
+                  </form>
+                </Modal>
+          </div>
+        );
+      };
+
+      const TrackingView = () => {
+        const today = new Date();
+        
+        const formatDate = (date) => {
+          const d = new Date(date);
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          return `${d.getFullYear()}-${month}-${day}`;
+        };
+
+        const firstDay = formatDate(new Date(today.getFullYear(), today.getMonth(), 1));
+        const lastDay = formatDate(new Date(today.getFullYear(), today.getMonth() + 1, 0));
+
+        const [startDate, setStartDate] = useState(firstDay);
+        const [endDate, setEndDate] = useState(lastDay);
+
+        const filteredTransactions = useMemo(() => {
+          return transactions.filter(t => t.date >= startDate && t.date <= endDate).sort((a,b) => new Date(b.date) - new Date(a.date));
+        }, [transactions, startDate, endDate]);
+
+        const periodIncome = filteredTransactions.filter(t => t.type === 'pemasukan').reduce((sum, t) => sum + Number(t.amount), 0);
+        const periodExpense = filteredTransactions.filter(t => t.type === 'pengeluaran').reduce((sum, t) => sum + Number(t.amount), 0);
+        const periodNet = periodIncome - periodExpense;
+
+        return (
+          <div className="space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[var(--c-surface)] brutal-border brutal-shadow p-4 gap-4">
+              <h1 className="text-4xl m-0 uppercase">Tracking Periode</h1>
+              <div className="flex gap-4 w-full md:w-auto [&>div]:mb-0">
+                <BrutalInput label="Dari Tanggal" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+                <BrutalInput label="Sampai Tanggal" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <BrutalCard title="PEMASUKAN" className="bg-[#E6F4EA] border-[var(--c-success)] text-[var(--c-success)]">
+                <div className="text-3xl font-mono font-bold break-all">+{formatRupiah(periodIncome)}</div>
+              </BrutalCard>
+              <BrutalCard title="PENGELUARAN" className="bg-[#FEE2E2] border-[var(--c-danger)] text-[var(--c-danger)]">
+                <div className="text-3xl font-mono font-bold break-all">-{formatRupiah(periodExpense)}</div>
+              </BrutalCard>
+              <BrutalCard title="SELISIH (NET)" className={periodNet >= 0 ? "bg-[#E6F4EA] border-[var(--c-success)] text-[var(--c-success)]" : "bg-[#FEE2E2] border-[var(--c-danger)] text-[var(--c-danger)]"}>
+                <div className="text-3xl font-mono font-bold break-all">{periodNet >= 0 ? '+' : ''}{formatRupiah(periodNet)}</div>
+              </BrutalCard>
+            </div>
+
+            <BrutalCard title="Rincian Transaksi" className="p-0 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left font-mono font-bold whitespace-nowrap mt-4">
+                  <thead className="bg-[var(--c-text)] text-white">
+                    <tr>
+                      <th className="p-4 border-r-2 border-white">TANGGAL</th>
+                      <th className="p-4 border-r-2 border-white">DESKRIPSI</th>
+                      <th className="p-4 border-r-2 border-white">KATEGORI</th>
+                      <th className="p-4 text-right">NOMINAL</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredTransactions.length === 0 && <tr><td colSpan="4" className="p-4 text-center border-t-2 border-black">TIDAK ADA TRANSAKSI DI PERIODE INI</td></tr>}
+                    {filteredTransactions.map(t => (
+                      <tr key={t.id} className="border-t-2 border-black hover:bg-[#F0F0F0]">
+                        <td className="p-4 border-r-2 border-black">{t.date}</td>
+                        <td className="p-4 border-r-2 border-black">{t.desc}</td>
+                        <td className="p-4 border-r-2 border-black uppercase">{t.category}</td>
+                        <td className={`p-4 text-right ${t.type === 'pemasukan' ? 'text-[var(--c-success)]' : 'text-[var(--c-danger)]'}`}>
+                          {t.type === 'pemasukan' ? '+' : '-'}{formatRupiah(t.amount)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </BrutalCard>
+          </div>
+        );
+      };
+
+      return (
+        <div className="min-h-screen flex flex-col md:flex-row">
+              {/* Sidebar Navigation */}
+              <nav className="md:w-72 bg-[var(--c-primary)] text-white brutal-border border-l-0 border-t-0 border-b-0 md:min-h-screen flex flex-col z-20 brutal-shadow relative">
+                <div className="p-6 border-b-[3px] border-black bg-[var(--c-text)]">
+                  <h1 className="text-5xl font-heading leading-none m-0 text-[var(--c-secondary)] tracking-tight">KAS ALA<br/>GEN Z</h1>
+                </div>
+                
+                <div className="flex-1 flex flex-row md:flex-col overflow-x-auto md:overflow-visible p-4 md:p-6 gap-4">
+                  {views.map(v => (
+                    <button
+                      key={v.id}
+                      onClick={() => setCurrentView(v.id)}
+                      className={`flex items-center gap-3 font-heading text-2xl uppercase tracking-wide px-4 py-3 brutal-border transition-all whitespace-nowrap
+                        ${currentView === v.id 
+                          ? 'bg-[var(--c-secondary)] text-black brutal-shadow translate-x-1 md:-translate-y-1' 
+                          : 'bg-[var(--c-primary)] hover:bg-[#C9503C] hover:translate-x-1'
+                        }
+                      `}
+                    >
+                      <v.icon />
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="p-6 mt-auto border-t-[3px] border-black hidden md:block bg-[#C9503C]">
+                  <p className="font-mono font-bold text-sm uppercase opacity-80">LOGIN SEBAGAI:</p>
+                  <p className="font-heading text-3xl break-words">{userName}</p>
+                  <button onClick={() => setIsLoggedIn(false)} className="mt-4 font-mono text-sm underline hover:text-black">KElUAR</button>
+                </div>
+              </nav>
+
+              {/* Main Content Area */}
+              <main className="flex-1 p-4 md:p-8 overflow-y-auto h-screen relative z-10 pb-24 md:pb-8 box-border">
+                <div className="max-w-6xl mx-auto">
+                  {currentView === 'dashboard' && renderDashboard()}
+                  {currentView === 'dompet' && <WalletsView />}
+                  {currentView === 'transaksi' && <TransactionsView />}
+              {currentView === 'budgeting' && <BudgetingView />}
+              {currentView === 'tabungan' && <SavingsView />}
+              {currentView === 'tracking' && <TrackingView />}
+            </div>
+          </main>
+        </div>
+          );
+        }
+
+        // Render App
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
